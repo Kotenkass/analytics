@@ -48,7 +48,7 @@ jobs:
       IMAGE_NAME: ${{ secrets.DOCKER_HUB_USERNAME }}/analytics
       IMAGE_TAG: latest
       KUBECONFIG: /tmp/kubeconfig
-      MANIFEST_PATH: manifest.yaml
+      MANIFEST_PATH: k8s/manifest.yaml
 
     steps:
       - name: Checkout
@@ -66,8 +66,8 @@ jobs:
 
       - name: Create or update analytics env Secret
         env:
-          CLICKHOUSE_DSN: ${{ secrets.CLICKHOUSE_DSN }}
-          KAFKA_BOOTSTRAP: ${{ secrets.KAFKA_BOOTSTRAP }}
+          CLICKHOUSE_DSN: ${{ vars.CLICKHOUSE_DSN }}
+          KAFKA_BOOTSTRAP: ${{ vars.KAFKA_BOOTSTRAP }}
         run: |
           kubectl --kubeconfig "$KUBECONFIG" create secret generic analytics-env \
             --from-literal=CLICKHOUSE_DSN="$CLICKHOUSE_DSN" \

@@ -19,7 +19,7 @@ jobs:
       IMAGE_TAG: dev
       NAMESPACE: dev
       KUBECONFIG: /tmp/kubeconfig
-      MANIFEST_PATH: manifest-dev.yaml
+      MANIFEST_PATH: k8s/manifest-dev.yaml
 
     steps:
       - name: Checkout
@@ -61,8 +61,8 @@ jobs:
 
       - name: Create or update analytics env Secret
         env:
-          CLICKHOUSE_DSN: ${{ secrets.CLICKHOUSE_DSN }}
-          KAFKA_BOOTSTRAP: ${{ secrets.KAFKA_BOOTSTRAP }}
+          CLICKHOUSE_DSN: ${{ vars.CLICKHOUSE_DSN }}
+          KAFKA_BOOTSTRAP: ${{ vars.KAFKA_BOOTSTRAP }}
         run: |
           kubectl --kubeconfig "$KUBECONFIG" create secret generic analytics-env \
             --namespace "$NAMESPACE" \
