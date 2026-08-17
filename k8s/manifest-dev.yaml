@@ -95,12 +95,12 @@ spec:
             failureThreshold: 6
           resources:
             requests:
-              cpu: 100m
-              memory: 128Mi
+              cpu: 25m
+              memory: 64Mi
               ephemeral-storage: 64Mi
             limits:
-              cpu: 500m
-              memory: 512Mi
+              cpu: 300m
+              memory: 128Mi
               ephemeral-storage: 128Mi
           securityContext:
             allowPrivilegeEscalation: false
