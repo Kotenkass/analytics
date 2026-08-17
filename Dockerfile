@@ -14,6 +14,7 @@ RUN go mod download
 
 COPY . .
 
+RUN test -d cmd/analytics && test -f cmd/analytics/main.go
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -trimpath \
     -ldflags="-s -w" \
