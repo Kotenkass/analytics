@@ -15,10 +15,11 @@ type Client struct {
 type Answer struct {
 	ChatID         string    `json:"chat_id"`
 	AnswerID       string    `json:"answer_id"`
+	SentAt         time.Time `json:"sent_at"`
 	ConversationID string    `json:"conversation_id,omitempty"`
 	AssistantID    string    `json:"assistant_id,omitempty"`
-	CreatedAt      time.Time `json:"created_at"`
-	Raw            string    `json:"raw"`
+	CreatedAt      time.Time `json:"created_at,omitempty"`
+	Raw            string    `json:"raw,omitempty"`
 }
 
 type DailyCount struct {
@@ -51,8 +52,8 @@ func (c *Client) InsertAnswers(ctx context.Context, answers []Answer) error {
 
 	stmt, err := tx.PrepareContext(ctx, `
 INSERT INTO analytics.answers_raw
-(chat_id, answer_id, conversation_id, assistant_id, created_at, raw)
-VALUES (?, ?, ?, ?, ?, ?)
+(chat_id, answer_id, sent_at, created_at)
+VALUES (?, ?, ?, now())
 `)
 	if err != nil {
 		return err
@@ -60,7 +61,7 @@ VALUES (?, ?, ?, ?, ?, ?)
 	defer stmt.Close()
 
 	for _, a := range answers {
-		if _, err := stmt.ExecContext(ctx, a.ChatID, a.AnswerID, a.ConversationID, a.AssistantID, a.CreatedAt, a.Raw); err != nil {
+		if _, err := stmt.ExecContext(ctx, a.ChatID, a.AnswerID, a.CreatedAt); err != nil {
 			return err
 		}
 	}
