@@ -13,8 +13,8 @@ type Client struct {
 }
 
 type Answer struct {
-	ChatID         string    `json:"chat_id"`
-	AnswerID       string    `json:"answer_id"`
+	ChatID         int64     `json:"chat_id"`
+	AnswerID       int64     `json:"answer_id"`
 	SentAt         time.Time `json:"sent_at"`
 	ConversationID string    `json:"conversation_id,omitempty"`
 	AssistantID    string    `json:"assistant_id,omitempty"`
@@ -52,8 +52,8 @@ func (c *Client) InsertAnswers(ctx context.Context, answers []Answer) error {
 
 	stmt, err := tx.PrepareContext(ctx, `
 INSERT INTO analytics.answers_raw
-(chat_id, answer_id, sent_at, created_at)
-VALUES (?, ?, ?, now())
+(chat_id, answer_id, sent_at)
+VALUES (?, ?, ?)
 `)
 	if err != nil {
 		return err
