@@ -72,12 +72,12 @@ VALUES (?, ?, ?)
 func (c *Client) DailyCounts(ctx context.Context, chatID string, since, until time.Time) ([]DailyCount, error) {
 	query := `
 SELECT
-  formatDateTime(toStartOfDay(created_at), '%Y-%m-%d') AS date,
+  formatDateTime(toStartOfDay(sent_at), '%Y-%m-%d') AS date,
   count() AS count
 FROM analytics.answers_raw
 WHERE chat_id = ?
-  AND created_at >= toDateTime64(?, 3, 'UTC')
-  AND created_at < toDateTime64(?, 3, 'UTC')
+  AND sent_at >= toDateTime64(?, 3, 'UTC')
+  AND sent_at < toDateTime64(?, 3, 'UTC')
 GROUP BY date
 ORDER BY date ASC
 `
