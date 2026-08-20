@@ -3,6 +3,9 @@ package clickhouse
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	_ "github.com/ClickHouse/clickhouse-go/v2"
@@ -12,10 +15,36 @@ type Client struct {
 	db *sql.DB
 }
 
+type FlexibleInt64 int64
+
+func (v *FlexibleInt64) UnmarshalJSON(data []byte) error {
+	if len(data) == 0 || string(data) == "null" {
+		*v = 0
+		return nil
+	}
+
+	trimmed := strings.TrimSpace(string(data))
+	if len(trimmed) >= 2 && trimmed[0] == '"' && trimmed[len(trimmed)-1] == '"' {
+		trimmed = trimmed[1 : len(trimmed)-1]
+	}
+
+	parsed, err := strconv.ParseInt(trimmed, 10, 64)
+	if err != nil {
+		return fmt.Errorf("parse int64 from %q: %w", data, err)
+	}
+
+	*v = FlexibleInt64(parsed)
+	return nil
+}
+
+func (v FlexibleInt64) Int64() int64 {
+	return int64(v)
+}
+
 type Answer struct {
-	ChatID         int64     `json:"chat_id"`
-	AnswerID       int64     `json:"answer_id"`
-	SentAt         time.Time `json:"sent_at"`
+	ChatID         FlexibleInt64 `json:"chat_id"`
+	AnswerID       FlexibleInt64 `json:"answer_id"`
+	SentAt         time.Time     `json:"sent_at"`
 	ConversationID string    `json:"conversation_id,omitempty"`
 	AssistantID    string    `json:"assistant_id,omitempty"`
 	CreatedAt      time.Time `json:"created_at,omitempty"`
@@ -61,7 +90,7 @@ VALUES (?, ?, ?)
 	defer stmt.Close()
 
 	for _, a := range answers {
-		if _, err := stmt.ExecContext(ctx, a.ChatID, a.AnswerID, a.CreatedAt); err != nil {
+		if _, err := stmt.ExecContext(ctx, a.ChatID.Int64(), a.AnswerID.Int64(), a.CreatedAt); err != nil {
 			return err
 		}
 	}

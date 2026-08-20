@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -152,6 +151,9 @@ func (c *Consumer) Run(ctx context.Context) {
 			var a answer
 			if err := json.Unmarshal(r.Value, &a); err != nil {
 				c.logger.WithError(err).WithField("topic", r.Topic).WithField("partition", r.Partition).WithField("offset", r.Offset).Error("failed to decode message")
+				if commitErr := c.client.CommitRecords(context.Background(), r); commitErr != nil {
+					c.logger.WithError(commitErr).WithField("topic", r.Topic).WithField("partition", r.Partition).WithField("offset", r.Offset).Error("failed to commit bad message")
+				}
 				return
 			}
 			normalizeAnswer(&a)
