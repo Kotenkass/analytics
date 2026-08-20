@@ -45,10 +45,10 @@ type Answer struct {
 	ChatID         FlexibleInt64 `json:"chat_id"`
 	AnswerID       FlexibleInt64 `json:"answer_id"`
 	SentAt         time.Time     `json:"sent_at"`
-	ConversationID string    `json:"conversation_id,omitempty"`
-	AssistantID    string    `json:"assistant_id,omitempty"`
-	CreatedAt      time.Time `json:"created_at,omitempty"`
-	Raw            string    `json:"raw,omitempty"`
+	ConversationID string        `json:"conversation_id,omitempty"`
+	AssistantID    string        `json:"assistant_id,omitempty"`
+	CreatedAt      time.Time     `json:"created_at,omitempty"`
+	Raw            string        `json:"raw,omitempty"`
 }
 
 type DailyCount struct {
