@@ -1,23 +1,13 @@
 apiVersion: v1
-kind: Namespace
-metadata:
-  name: dev
-  labels:
-    environment: dev
----
-apiVersion: v1
 kind: Service
 metadata:
   name: analytics
-  namespace: dev
   labels:
     app: analytics
-    environment: dev
 spec:
   type: ClusterIP
   selector:
     app: analytics
-    environment: dev
   ports:
     - name: http
       port: 8080
@@ -28,21 +18,17 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: analytics
-  namespace: dev
   labels:
     app: analytics
-    environment: dev
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: analytics
-      environment: dev
   template:
     metadata:
       labels:
         app: analytics
-        environment: dev
     spec:
       automountServiceAccountToken: false
       terminationGracePeriodSeconds: 30
@@ -55,8 +41,8 @@ spec:
         fsGroup: 65532
       containers:
         - name: analytics
-          image: docker.io/anikolaevdo/analytics:dev
-          imagePullPolicy: Always
+          image: docker.io/anikolaevdo/analytics:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - name: http
               containerPort: 8080
@@ -95,12 +81,12 @@ spec:
             failureThreshold: 6
           resources:
             requests:
-              cpu: 100m
-              memory: 128Mi
+              cpu: 25m
+              memory: 64Mi
               ephemeral-storage: 64Mi
             limits:
-              cpu: 500m
-              memory: 512Mi
+              cpu: 300m
+              memory: 128Mi
               ephemeral-storage: 128Mi
           securityContext:
             allowPrivilegeEscalation: false

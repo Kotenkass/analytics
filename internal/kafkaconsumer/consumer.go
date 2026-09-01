@@ -151,8 +151,12 @@ func (c *Consumer) Run(ctx context.Context) {
 			var a answer
 			if err := json.Unmarshal(r.Value, &a); err != nil {
 				c.logger.WithError(err).WithField("topic", r.Topic).WithField("partition", r.Partition).WithField("offset", r.Offset).Error("failed to decode message")
+				if commitErr := c.client.CommitRecords(context.Background(), r); commitErr != nil {
+					c.logger.WithError(commitErr).WithField("topic", r.Topic).WithField("partition", r.Partition).WithField("offset", r.Offset).Error("failed to commit bad message")
+				}
 				return
 			}
+			normalizeAnswer(&a)
 			a.Raw = string(r.Value)
 			batch = append(batch, a)
 			records = append(records, r)
@@ -191,6 +195,12 @@ func (c *Consumer) updateLag(ctx context.Context) error {
 	}
 	c.metrics.KafkaLag.Set(float64(total))
 	return nil
+}
+
+func normalizeAnswer(a *answer) {
+	if a.CreatedAt.IsZero() {
+		a.CreatedAt = a.SentAt
+	}
 }
 
 func (c *Consumer) Stop(ctx context.Context) error {

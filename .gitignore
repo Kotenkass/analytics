@@ -13,7 +13,7 @@
 coverage.out
 
 # Local build output
-analytics
+/analytics
 
 # IDE
 .idea/

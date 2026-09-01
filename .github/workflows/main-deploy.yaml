@@ -1,0 +1,100 @@
+name: Main Deploy
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and push Docker image
+    runs-on: ubuntu-latest
+
+    env:
+      IMAGE_NAME: ${{ secrets.DOCKER_HUB_USERNAME }}/analytics
+      IMAGE_TAG: latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+
+  deploy:
+    name: Deploy to Kubernetes
+    runs-on: ubuntu-latest
+    needs: build
+
+    env:
+      IMAGE_NAME: ${{ secrets.DOCKER_HUB_USERNAME }}/analytics
+      IMAGE_TAG: latest
+      KUBECONFIG: /tmp/kubeconfig
+      MANIFEST_PATH: k8s/manifest.yaml
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Prepare kubeconfig
+        env:
+          KUBECONFIG_BASE64: ${{ secrets.KUBECONFIG_BASE64 }}
+        run: |
+          mkdir -p "$(dirname "$KUBECONFIG")"
+          printf '%s' "$KUBECONFIG_BASE64" | base64 --decode > "$KUBECONFIG"
+          chmod 600 "$KUBECONFIG"
+          kubectl --kubeconfig "$KUBECONFIG" auth can-i get pods --all-namespaces
+
+      - name: Create or update analytics env Secret
+        env:
+          CLICKHOUSE_DSN: ${{ vars.CLICKHOUSE_DSN }}
+          KAFKA_BOOTSTRAP: ${{ vars.KAFKA_BOOTSTRAP }}
+        run: |
+          kubectl --kubeconfig "$KUBECONFIG" create secret generic analytics-env \
+            --from-literal=CLICKHOUSE_DSN="$CLICKHOUSE_DSN" \
+            --from-literal=KAFKA_BOOTSTRAP="$KAFKA_BOOTSTRAP" \
+            --dry-run=client -o yaml | kubectl --kubeconfig "$KUBECONFIG" apply -f -
+
+      - name: Create or update Docker Hub pull secret
+        env:
+          DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+          DOCKER_HUB_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
+        run: |
+          kubectl --kubeconfig "$KUBECONFIG" create secret docker-registry docker-hub-pull-secret \
+            --docker-server="https://index.docker.io/v1/" \
+            --docker-username="$DOCKER_HUB_USERNAME" \
+            --docker-password="$DOCKER_HUB_TOKEN" \
+            --dry-run=client -o yaml | kubectl --kubeconfig "$KUBECONFIG" apply -f -
+
+      - name: Apply manifest
+        run: kubectl --kubeconfig "$KUBECONFIG" apply -f "$MANIFEST_PATH"
+
+      - name: Set Docker image
+        run: kubectl --kubeconfig "$KUBECONFIG" set image deployment/analytics analytics="${IMAGE_NAME}:${IMAGE_TAG}"
+
+      - name: Restart Deployment
+        run: kubectl --kubeconfig "$KUBECONFIG" rollout restart deployment/analytics
+
+      - name: Wait for rollout
+        run: kubectl --kubeconfig "$KUBECONFIG" rollout status deployment/analytics --timeout=180s
