@@ -41,7 +41,7 @@ spec:
         fsGroup: 65532
       containers:
         - name: analytics
-          image: docker.io/anikolaevdo/analytics:latest
+          image: docker.io/anikolaevdo/analytics:release
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
